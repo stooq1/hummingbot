@@ -171,7 +171,7 @@ class TestMexcPerpetualCandles(TestCandlesBase):
 
     @aioresponses()
     async def test_get_historical_candles_returns_a_window_older_than_the_latest_page(self, mock_api):
-        # Like the venue: the window is taken from start/end (seconds); a request without them gets the latest 2000 candles
+        # Like the venue: the window comes from start/end (seconds), newest 2000 if longer; without them, the latest 2000
         step = 3600
         latest = 1792627200
 
@@ -185,7 +185,8 @@ class TestMexcPerpetualCandles(TestCandlesBase):
             query = url.query
             if "start" in query and "end" in query:
                 first, last = int(query["start"]), int(query["end"])
-                return CallbackResult(payload=kline(first, min((last - first) // step + 1, 2000)))
+                count = min((last - first) // step + 1, 2000)
+                return CallbackResult(payload=kline(last - (count - 1) * step, count))
             return CallbackResult(payload=kline(latest - 1999 * step, 2000))
 
         mock_api.get(re.compile(f"^{re.escape(self.data_feed.candles_url)}"), callback=callback, repeat=True)
