@@ -100,7 +100,7 @@ class TestBybitSpotCandles(TestCandlesBase):
 
     @aioresponses()
     async def test_get_historical_candles_returns_a_window_older_than_the_latest_page(self, mock_api):
-        # Like the venue: the window is taken from start/end (ms); a request without them gets the latest 1000 candles
+        # Like the venue: the window comes from start/end (ms), newest 1000 if longer; without them, the latest 1000
         step_ms = 3600 * 1000
         latest_ms = 1792627200000
 
@@ -112,7 +112,8 @@ class TestBybitSpotCandles(TestCandlesBase):
             query = url.query
             if "start" in query and "end" in query:
                 first_ms, last_ms = int(query["start"]), int(query["end"])
-                rows = kline_rows(first_ms, min((last_ms - first_ms) // step_ms + 1, 1000))
+                count = min((last_ms - first_ms) // step_ms + 1, 1000)
+                rows = kline_rows(last_ms - (count - 1) * step_ms, count)
             else:
                 rows = kline_rows(latest_ms - 999 * step_ms, 1000)
             return CallbackResult(payload={"retCode": 0, "retMsg": "OK", "result": {"category": "spot", "symbol": "BTCUSDT", "list": rows}})
